@@ -2,6 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
+generated
+token.txt
+inpainting-demo.ipynb
+*.jpg
+*.png
+checkpoints/
 
 # C extensions
 *.so

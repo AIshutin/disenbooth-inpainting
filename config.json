@@ -1,0 +1,15 @@
+{
+    "adapters": {
+        "dog": {
+            "path2adapter": "checkpoints/dog",
+            "path2references": "../subject-driven-gen-eval/datasets/dreambooth/dog",
+            "trigger": " dog",
+            "real_token": " dog</w> dog",
+            "description": "a dog from DreamBench dataset"
+        }
+    },
+    "diffusion": "stabilityai/stable-diffusion-2-inpainting",
+    "topk": 4,
+    "batch_size": 16,
+    "guidance_scale": 7.5
+}
