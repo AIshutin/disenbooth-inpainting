@@ -11,10 +11,12 @@ import numpy as np
 
 
 class MLProcessor:
+    weights_name = 'pytorch_lora_weights.safetensors'
+
     def __init__(self, config) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.pipeline = AutoPipelineForInpainting.from_pretrained(
-            config['diffusion'], torch_dtype=torch.float16
+            config['diffusion'], torch_dtype=torch.float16, safety_checker=None
         ).to(self.device)
         self.dino = ViTModel.from_pretrained('facebook/dino-vits16').to(self.device)
 
@@ -29,10 +31,9 @@ class MLProcessor:
         self.reference_embeds = {}
         self.keyword2adapter = {}
         self.adapter2token = {}
+        self.adapter2path = {}
         for adapter_name, values in config['adapters'].items():
-            self.pipeline.load_lora_weights(values['path2adapter'], 
-                                            weight_name='pytorch_lora_weights.safetensors', 
-                                            adapter_name=adapter_name)
+            self.adapter2path[adapter_name] = values['path2adapter']
             embeds = []
             for file in os.listdir(values['path2references']):
                 if '.jpg' in file:
@@ -74,8 +75,12 @@ class MLProcessor:
                                        "Try to use them sequentially")
                 adapter_name = self.keyword2adapter[keyword]      
                 triggered_keyword = keyword
-        if adapter_name is not None:    
-            assert(adapter_name is not None)
+        if adapter_name is not None:
+            
+            self.pipeline.load_lora_weights(self.adapter2path[adapter_name], 
+                                            weight_name=self.weights_name, 
+                                            adapter_name=adapter_name)
+            print('adapter_name', adapter_name)
             prompt = prompt.replace(triggered_keyword, self.adapter2token[adapter_name])
             if negative_prompt is not None:
                 negative_prompt = negative_prompt.replace(triggered_keyword, self.adapter2token[adapter_name])
@@ -84,7 +89,7 @@ class MLProcessor:
             self.pipeline.set_adapters([])
         
         images = self.pipeline(prompt=prompt, negative_prompt=negative_prompt,
-                               image=init_image, mask_image=mask_image, 
+                               image=init_image, mask_image=mask_image,
                                guidance_scale=self.config['guidance_scale'], 
                                num_images_per_prompt=self.config['batch_size'],
                                cross_attention_kwargs={"scale": 1.0}).images
@@ -95,13 +100,13 @@ class MLProcessor:
             score = self.get_dino_score(self.reference_embeds[adapter_name], images[i])
             scores.append((score, i))
         scores.sort(reverse=True)
-
+        self.pipeline.unload_lora_weights()
         return [images[el[1]] for el in scores[:self.config['topk']]]
 
     def list_concepts(self):
         concepts = {}
         for key, value in self.config['adapters'].items():
-            concepts[key] = value['description']
+            concepts[value['trigger'].strip()] = value['description']
         return concepts
 
 if __name__ == "__main__":

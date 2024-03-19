@@ -31,7 +31,7 @@ with open('config.json') as file:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = "I am inpainting bot. I use diffusion model + DisenBooth to inpaint your images.\n"
+    text = "I am inpainting bot. I use diffusion model + DisenBooth to inpaint your images. You can set negative prompt with /negative command.\n"
     text = text + "Please send me one with prompt in the caption.\nI support the following concepts:\n"
 
     concepts = mlprocessor.list_concepts()
@@ -75,7 +75,6 @@ async def inpaint(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tg_images.append(telegram.InputMediaPhoto(img_byte_arr))
     
     await update.message.reply_media_group(tg_images) 
-    #caption=f"Prompt: {prompt}\nNegative prompt: {negative_prompt}")
 
 
 def main() -> None:
